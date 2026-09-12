@@ -1,0 +1,192 @@
+/* ==========================================================================
+   InfoNews - Design System & Custom Styles
+   Arquitetura de Cores, Temas Claro / Escuro & Utilitários
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+    /* Modo Claro (Default) */
+    --color-bg-base: #f8fafc;
+    --color-bg-surface: #ffffff;
+    --color-bg-surface-elevated: #ffffff;
+    --color-bg-subtle: #f1f5f9;
+    --color-bg-muted: #e2e8f0;
+    
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #334155;
+    --color-text-muted: #64748b;
+    --color-text-dimmed: #94a3b8;
+    
+    --color-border-subtle: #e2e8f0;
+    --color-border-medium: #cbd5e1;
+    
+    --color-brand-50: #fef2f2;
+    --color-brand-100: #fee2e2;
+    --color-brand-500: #ef4444;
+    --color-brand-600: #dc2626;
+    --color-brand-700: #b91c1c;
+
+    --color-topbar-bg: rgba(255, 255, 255, 0.92);
+    --color-navbar-bg: rgba(255, 255, 255, 0.95);
+    --color-card-bg: #ffffff;
+    --color-card-border: #e2e8f0;
+    --color-modal-bg: #ffffff;
+    --color-modal-overlay: rgba(15, 23, 42, 0.6);
+
+    --shadow-soft: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+    --shadow-hover: 0 12px 30px -4px rgba(220, 38, 38, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
+
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+}
+
+html.dark {
+    /* Modo Escuro */
+    --color-bg-base: #0b0f19;
+    --color-bg-surface: #111827;
+    --color-bg-surface-elevated: #1f2937;
+    --color-bg-subtle: #1e293b;
+    --color-bg-muted: #334155;
+    
+    --color-text-primary: #f8fafc;
+    --color-text-secondary: #cbd5e1;
+    --color-text-muted: #94a3b8;
+    --color-text-dimmed: #64748b;
+    
+    --color-border-subtle: #1e293b;
+    --color-border-medium: #334155;
+
+    --color-topbar-bg: rgba(11, 15, 25, 0.94);
+    --color-navbar-bg: rgba(17, 24, 39, 0.95);
+    --color-card-bg: #111827;
+    --color-card-border: #1f2937;
+    --color-modal-bg: #1f2937;
+    --color-modal-overlay: rgba(0, 0, 0, 0.75);
+
+    --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.4), 0 2px 6px -1px rgba(0, 0, 0, 0.3);
+    --shadow-hover: 0 14px 32px -4px rgba(220, 38, 38, 0.2), 0 4px 14px -2px rgba(0, 0, 0, 0.5);
+}
+
+/* Base styling */
+body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg-base);
+    color: var(--color-text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Utilitários Tipográficos & Texto */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Ocultação de Scrollbars preservando a rolagem horizontal */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Custom Scrollbar moderna para páginas inteiras */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+    background: #334155;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* Micro-animações e Interatividades */
+.transition-theme {
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Shimmer Loading Animation para o Skeleton */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(90deg, 
+        rgba(226, 232, 240, 0.6) 0%, 
+        rgba(241, 245, 249, 0.9) 50%, 
+        rgba(226, 232, 240, 0.6) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite ease-in-out;
+}
+
+html.dark .skeleton-shimmer {
+    background: linear-gradient(90deg, 
+        rgba(30, 41, 59, 0.7) 0%, 
+        rgba(51, 65, 85, 0.9) 50%, 
+        rgba(30, 41, 59, 0.7) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite ease-in-out;
+}
+
+/* Card hover glow */
+.news-card {
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                box-shadow 0.28s ease, 
+                border-color 0.28s ease;
+}
+
+.news-card:hover {
+    transform: translateY(-4px);
+}
+
+/* Efeito de badge pulsante */
+@keyframes pulse-dot {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 0.6;
+    }
+}
+
+.live-indicator {
+    animation: pulse-dot 2s infinite ease-in-out;
+}
