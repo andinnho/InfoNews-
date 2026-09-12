@@ -1,7 +1,7 @@
 /**
  * InfoNews - Core Application Logic
  * Gerenciamento de Estado, Consumo de APIs (RSS, Open-Meteo, AwesomeAPI)
- * Controle de Tema Claro/Escuro, Filtros e Acessibilidade
+ * Controle de Tema Claro/Escuro, Filtros, Acessibilidade e Segurança (AppSec)
  */
 
 // Estado Global da Aplicação
@@ -14,7 +14,8 @@ const state = {
     climaCoords: JSON.parse(localStorage.getItem('infonews_coords')) || { lat: -23.5475, lon: -46.6361 },
     noticias: [],
     todasNoticias: [],
-    tema: localStorage.getItem('infonews_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    tema: localStorage.getItem('infonews_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+    isCarregando: false
 };
 
 // Portais Especializados em Tecnologia e Feeds Oficiais
@@ -91,7 +92,7 @@ const GENERAL_FEEDS = {
     }
 };
 
-// Notícias de Contingência para caso todas as fontes externas ou limites de rate-limit falhem
+// Notícias de Contingência (modo offline/reserva)
 const CONTINGENCY_NEWS = [
     {
         titulo: "Inteligência Artificial Generativa e Chips Neurais transformam o mercado tech em 2026",
@@ -124,6 +125,75 @@ const CONTINGENCY_NEWS = [
         imagem: "https://images.unsplash.com/photo-1516306580123-e6e52b1b7b5f?auto=format&fit=crop&w=800&q=80"
     }
 ];
+
+/* ==========================================================================
+   Utilitários de Segurança (AppSec & Sanitização)
+   ========================================================================== */
+
+/**
+ * Escapa caracteres HTML para prevenir Cross-Site Scripting (XSS).
+ */
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Valida e sanitiza URLs externas, permitindo estritamente protocolos http:// e https://.
+ * Bloqueia injeções perigosas como javascript:, data:text/html, vbscript:, file:, etc.
+ */
+function sanitizeUrl(url) {
+    if (!url || typeof url !== 'string') return '#';
+    const trimmed = url.trim();
+    try {
+        const parsed = new URL(trimmed, window.location.href);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            return parsed.href;
+        }
+    } catch (e) {
+        // Formato de URL inválido
+    }
+    return '#';
+}
+
+/**
+ * Valida URLs de imagem, garantindo protocolo seguro ou fallback local.
+ */
+function sanitizeImageUrl(url, fallbackUrl) {
+    if (!url || typeof url !== 'string') return fallbackUrl;
+    const trimmed = url.trim();
+    try {
+        const parsed = new URL(trimmed, window.location.href);
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            return parsed.href;
+        }
+    } catch (e) {}
+    return fallbackUrl;
+}
+
+/**
+ * Requisição fetch com timeout para prevenir conexões pendentes e exaustão de recursos.
+ */
+async function fetchWithTimeout(resource, options = {}, timeoutMs = 8000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const response = await fetch(resource, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
+}
 
 /* ==========================================================================
    Inicialização e Ciclo de Vida
@@ -192,7 +262,6 @@ function aplicarTema(t) {
         }
     }
 
-    // Reaplicar estilos de botões para manter consistência das classes ativas/inativas
     atualizarClassesBotoesFiltro();
 }
 
@@ -201,7 +270,7 @@ function aplicarTema(t) {
    ========================================================================== */
 async function carregarCambio() {
     try {
-        const res = await fetch('https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL,BTC-BRL');
+        const res = await fetchWithTimeout('https://economia.awesomeapi.com.br/json/last/USD-BRL,EUR-BRL,BTC-BRL', {}, 7000);
         if (!res.ok) return;
         const data = await res.json();
 
@@ -267,11 +336,11 @@ async function carregarClima() {
     const elMin = document.getElementById('clima-min');
     const elIcone = document.getElementById('clima-icone');
 
-    if (elCidade) elCidade.innerText = state.cidadeClima;
+    if (elCidade) elCidade.innerText = escapeHTML(state.cidadeClima);
 
     try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${state.climaCoords.lat}&longitude=${state.climaCoords.lon}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=1`;
-        const res = await fetch(url);
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(state.climaCoords.lat)}&longitude=${encodeURIComponent(state.climaCoords.lon)}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=1`;
+        const res = await fetchWithTimeout(url, {}, 7000);
         if (!res.ok) return;
         const data = await res.json();
 
@@ -320,12 +389,12 @@ function fecharModalCidade() {
 async function salvarCidade(e) {
     e.preventDefault();
     const input = document.getElementById('input-cidade-clima');
-    const nomeCidade = input ? input.value.trim() : '';
+    const nomeCidade = input ? input.value.trim().substring(0, 100) : '';
     if (!nomeCidade) return;
 
     try {
         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nomeCidade)}&count=1&language=pt&format=json`;
-        const res = await fetch(geoUrl);
+        const res = await fetchWithTimeout(geoUrl, {}, 7000);
         const geoData = await res.json();
 
         if (geoData.results && geoData.results.length > 0) {
@@ -361,6 +430,9 @@ function atualizarDataTopo() {
    Seleção de Nichos e Portais de Tecnologia
    ========================================================================== */
 function selecionarCategoria(cat) {
+    if (!['tecnologia', 'politica', 'brasil', 'mundo', 'economia'].includes(cat)) {
+        cat = 'tecnologia';
+    }
     state.categoriaAtual = cat;
     atualizarClassesBotoesFiltro();
 
@@ -383,7 +455,6 @@ function selecionarPortalTech(portalKey) {
 }
 
 function atualizarClassesBotoesFiltro() {
-    // Atualiza botões de categoria principal
     document.querySelectorAll('.cat-btn').forEach(btn => {
         const cat = btn.dataset.cat;
         if (cat === state.categoriaAtual) {
@@ -395,7 +466,6 @@ function atualizarClassesBotoesFiltro() {
         }
     });
 
-    // Atualiza botões de portais de tecnologia
     document.querySelectorAll('.portal-btn').forEach(btn => {
         const portal = btn.dataset.portal;
         if (portal === state.portalTechAtual) {
@@ -409,9 +479,12 @@ function atualizarClassesBotoesFiltro() {
 }
 
 /* ==========================================================================
-   Carregamento de Notícias e Agregação
+   Carregamento de Notícias (Com Guard contra Spam & DoS)
    ========================================================================== */
 async function carregarNoticias() {
+    if (state.isCarregando) return; // Previne múltiplas requisições simultâneas concorrentes
+    state.isCarregando = true;
+
     const grid = document.getElementById('grid-noticias');
     const loading = document.getElementById('loading');
     const empty = document.getElementById('estado-vazio');
@@ -432,7 +505,6 @@ async function carregarNoticias() {
             items = await fetchFromRSS();
         }
 
-        // Se por ventura retornar vazio, aplicar fallback seguro
         if (!items || items.length === 0) {
             items = CONTINGENCY_NEWS;
         }
@@ -441,19 +513,19 @@ async function carregarNoticias() {
         renderizarNoticias(items);
     } catch (err) {
         console.error('Erro na requisição de notícias:', err);
-        // Fallback resiliente
         if (CONTINGENCY_NEWS.length > 0) {
             state.todasNoticias = CONTINGENCY_NEWS;
             renderizarNoticias(CONTINGENCY_NEWS);
-            mostrarToast('Carregando notícias em cache (modo offline/reserva)');
+            mostrarToast('Carregando notícias em cache (modo reserva)');
         } else {
             if (empty) {
                 empty.classList.remove('hidden');
                 const msg = document.getElementById('msg-estado-vazio');
-                if (msg) msg.innerText = `Erro: ${err.message}. Tente recarregar ou selecionar outro portal na barra de opções.`;
+                if (msg) msg.innerText = `Não foi possível carregar os portais no momento. Tente recarregar em instantes.`;
             }
         }
     } finally {
+        state.isCarregando = false;
         if (loading) loading.classList.add('hidden');
         if (iconRefresh) iconRefresh.classList.remove('fa-spin');
     }
@@ -461,10 +533,12 @@ async function carregarNoticias() {
 
 async function fetchSingleRssFeed(feedObj) {
     const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedObj.url)}`;
-    const res = await fetch(apiUrl);
+    const res = await fetchWithTimeout(apiUrl, {}, 8000);
     if (!res.ok) throw new Error(`Falha HTTP ao acessar ${feedObj.nome}`);
     const data = await res.json();
     if (data.status !== 'ok' || !data.items) return [];
+
+    const parser = new DOMParser();
 
     return data.items.map(item => {
         let imagem = item.thumbnail || item.enclosure?.link;
@@ -473,19 +547,22 @@ async function fetchSingleRssFeed(feedObj) {
             if (match) imagem = match[1];
         }
 
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = item.description || '';
-        const cleanDesc = (tempDiv.textContent || tempDiv.innerText || '').trim();
+        // Sanitização segura de texto sem injeção direta no DOM
+        let cleanDesc = '';
+        if (item.description) {
+            const parsedDoc = parser.parseFromString(item.description, 'text/html');
+            cleanDesc = (parsedDoc.body.textContent || '').trim();
+        }
 
         return {
-            titulo: item.title,
-            link: item.link,
+            titulo: item.title ? String(item.title).trim() : 'Sem título',
+            link: sanitizeUrl(item.link),
             resumo: cleanDesc || 'Clique no link para conferir a reportagem completa.',
             dataRaw: item.pubDate ? new Date(item.pubDate) : new Date(),
             data: item.pubDate ? new Date(item.pubDate).toLocaleString('pt-BR') : 'Recente',
             fonte: feedObj.nome,
             badgeColor: feedObj.badgeColor || 'bg-red-500/10 text-redbrand-600 dark:bg-redbrand-600/20 dark:text-redbrand-400 border-redbrand-500/30',
-            imagem: imagem || getImagemFallback(state.categoriaAtual)
+            imagem: sanitizeImageUrl(imagem, getImagemFallback(state.categoriaAtual))
         };
     });
 }
@@ -542,21 +619,21 @@ async function fetchFromGNews() {
     else if (state.categoriaAtual === 'mundo') gnewsCat = 'world';
     else if (state.categoriaAtual === 'economia') gnewsCat = 'business';
 
-    const url = `https://gnews.io/api/v4/top-headlines?category=${gnewsCat}&lang=pt&country=br&apikey=${state.apiKey}`;
-    const res = await fetch(url);
+    const url = `https://gnews.io/api/v4/top-headlines?category=${encodeURIComponent(gnewsCat)}&lang=pt&country=br&apikey=${encodeURIComponent(state.apiKey)}`;
+    const res = await fetchWithTimeout(url, {}, 8000);
     const data = await res.json();
 
     if (data.errors) throw new Error(data.errors[0]);
 
     return (data.articles || []).map(art => ({
-        titulo: art.title,
-        link: art.url,
-        resumo: art.description || 'Sem descrição.',
+        titulo: art.title ? String(art.title).trim() : 'Sem título',
+        link: sanitizeUrl(art.url),
+        resumo: art.description ? String(art.description).trim() : 'Sem descrição.',
         data: new Date(art.publishedAt).toLocaleString('pt-BR'),
         dataRaw: new Date(art.publishedAt),
-        fonte: art.source?.name || 'GNews',
+        fonte: art.source?.name ? String(art.source.name).trim() : 'GNews',
         badgeColor: 'bg-red-500/10 text-redbrand-600 dark:bg-redbrand-600/20 dark:text-redbrand-400 border-redbrand-500/30',
-        imagem: art.image || getImagemFallback(state.categoriaAtual)
+        imagem: sanitizeImageUrl(art.image, getImagemFallback(state.categoriaAtual))
     }));
 }
 
@@ -571,26 +648,26 @@ async function fetchFromNewsData() {
     else if (state.categoriaAtual === 'mundo') cat = 'world';
     else if (state.categoriaAtual === 'economia') cat = 'business';
 
-    const url = `https://newsdata.io/api/1/news?apikey=${state.apiKey}&country=br&category=${cat}`;
-    const res = await fetch(url);
+    const url = `https://newsdata.io/api/1/news?apikey=${encodeURIComponent(state.apiKey)}&country=br&category=${encodeURIComponent(cat)}`;
+    const res = await fetchWithTimeout(url, {}, 8000);
     const data = await res.json();
 
     if (data.status === 'error') throw new Error(data.results?.message || 'Erro NewsData');
 
     return (data.results || []).map(item => ({
-        titulo: item.title,
-        link: item.link,
-        resumo: item.description || 'Sem descrição.',
+        titulo: item.title ? String(item.title).trim() : 'Sem título',
+        link: sanitizeUrl(item.link),
+        resumo: item.description ? String(item.description).trim() : 'Sem descrição.',
         data: item.pubDate ? new Date(item.pubDate).toLocaleString('pt-BR') : 'Recente',
         dataRaw: item.pubDate ? new Date(item.pubDate) : new Date(),
-        fonte: item.source_id || 'NewsData',
+        fonte: item.source_id ? String(item.source_id).trim() : 'NewsData',
         badgeColor: 'bg-red-500/10 text-redbrand-600 dark:bg-redbrand-600/20 dark:text-redbrand-400 border-redbrand-500/30',
-        imagem: item.image_url || getImagemFallback(state.categoriaAtual)
+        imagem: sanitizeImageUrl(item.image_url, getImagemFallback(state.categoriaAtual))
     }));
 }
 
 /* ==========================================================================
-   Renderização dos Cards de Notícias (HTML5 Semântico + Light/Dark)
+   Renderização Segura dos Cards (Proteção contra XSS e Injeção de Atributos)
    ========================================================================== */
 function renderizarNoticias(lista) {
     const grid = document.getElementById('grid-noticias');
@@ -607,25 +684,31 @@ function renderizarNoticias(lista) {
     }
     if (empty) empty.classList.add('hidden');
 
+    const fallbackUrl = getImagemFallback(state.categoriaAtual);
+
     lista.forEach(n => {
         const card = document.createElement('article');
-        // Suporte a tema claro e escuro de primeira classe
         card.className = 'news-card bg-white dark:bg-slate-800/95 rounded-2xl overflow-hidden border border-slate-200/90 dark:border-slate-700/80 hover:border-redbrand-500/50 shadow-sm hover:shadow-xl dark:shadow-slate-950/40 hover:shadow-redbrand-600/10 transition-all duration-300 flex flex-col group';
 
-        const fallbackUrl = getImagemFallback(state.categoriaAtual);
+        const safeTitulo = escapeHTML(n.titulo);
+        const safeResumo = escapeHTML(n.resumo);
+        const safeFonte = escapeHTML(n.fonte);
+        const safeLink = sanitizeUrl(n.link);
+        const safeImage = sanitizeImageUrl(n.imagem, fallbackUrl);
+        const safeDate = escapeHTML(n.data);
+        const safeIsoDate = n.dataRaw ? escapeHTML(new Date(n.dataRaw).toISOString()) : '';
 
         card.innerHTML = `
             <div class="relative h-48 w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
                 <img 
-                    src="${n.imagem}" 
-                    alt="${n.titulo}" 
+                    src="${safeImage}" 
+                    alt="${safeTitulo}" 
                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
-                    onerror="this.onerror=null; this.src='${fallbackUrl}'"
                 >
                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"></div>
                 <span class="absolute top-3 left-3 bg-white/95 dark:bg-slate-900/90 backdrop-blur text-[11px] font-bold px-2.5 py-1 rounded-full border ${n.badgeColor || 'text-redbrand-600 dark:text-redbrand-400 border-redbrand-500/30'} shadow-sm">
-                    ${n.fonte}
+                    ${safeFonte}
                 </span>
             </div>
 
@@ -633,37 +716,53 @@ function renderizarNoticias(lista) {
                 <div>
                     <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-2">
                         <i class="fa-regular fa-clock text-redbrand-500"></i>
-                        <time datetime="${n.dataRaw ? new Date(n.dataRaw).toISOString() : ''}">${n.data}</time>
+                        <time datetime="${safeIsoDate}">${safeDate}</time>
                     </div>
                     <h2 class="text-base font-bold text-slate-900 dark:text-white group-hover:text-redbrand-600 dark:group-hover:text-redbrand-400 transition-colors line-clamp-2 mb-2 leading-snug">
-                        <a href="${n.link}" target="_blank" rel="noopener noreferrer">${n.titulo}</a>
+                        <a href="${safeLink}" target="_blank" rel="noopener noreferrer">${safeTitulo}</a>
                     </h2>
                     <p class="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 mb-4 leading-relaxed">
-                        ${n.resumo}
+                        ${safeResumo}
                     </p>
                 </div>
 
                 <div class="pt-3 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
                     <a 
-                        href="${n.link}" 
+                        href="${safeLink}" 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         class="inline-flex items-center gap-1.5 text-xs font-bold text-redbrand-600 dark:text-redbrand-500 hover:text-redbrand-700 dark:hover:text-redbrand-400 transition"
                     >
-                        Ler no ${n.fonte} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                        Ler no ${safeFonte} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                     </a>
                     <button 
                         type="button"
-                        onclick="compartilhar('${encodeURIComponent(n.titulo)}', '${encodeURIComponent(n.link)}')" 
-                        class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" 
+                        class="btn-share text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" 
                         title="Compartilhar notícia"
-                        aria-label="Compartilhar notícia: ${n.titulo}"
+                        aria-label="Compartilhar notícia: ${safeTitulo}"
                     >
                         <i class="fa-solid fa-share-nodes text-xs"></i>
                     </button>
                 </div>
             </div>
         `;
+
+        // Event listener seguro para imagens com fallback
+        const imgEl = card.querySelector('img');
+        if (imgEl) {
+            imgEl.addEventListener('error', () => {
+                imgEl.src = fallbackUrl;
+            }, { once: true });
+        }
+
+        // Event listener seguro para compartilhamento (sem concatenação frágil em inline onclick)
+        const btnShare = card.querySelector('.btn-share');
+        if (btnShare) {
+            btnShare.addEventListener('click', () => {
+                compartilhar(n.titulo, n.link);
+            });
+        }
+
         grid.appendChild(card);
     });
 }
@@ -673,15 +772,15 @@ function renderizarNoticias(lista) {
    ========================================================================== */
 function filtrarPorTexto() {
     const input = document.getElementById('input-busca');
-    const q = input ? input.value.toLowerCase().trim() : '';
+    const q = input ? input.value.toLowerCase().trim().substring(0, 100) : '';
     if (!q) {
         renderizarNoticias(state.todasNoticias);
         return;
     }
     const filtradas = state.todasNoticias.filter(n =>
-        n.titulo.toLowerCase().includes(q) ||
-        n.resumo.toLowerCase().includes(q) ||
-        n.fonte.toLowerCase().includes(q)
+        (n.titulo && n.titulo.toLowerCase().includes(q)) ||
+        (n.resumo && n.resumo.toLowerCase().includes(q)) ||
+        (n.fonte && n.fonte.toLowerCase().includes(q))
     );
     renderizarNoticias(filtradas);
 }
@@ -709,9 +808,9 @@ function atualizarOpcoesProvider() {
             grpApiKey.classList.remove('hidden');
             if (dica) {
                 if (prov === 'gnews') {
-                    dica.innerHTML = 'Obtenha sua chave gratuita em <a href="https://gnews.io" target="_blank" rel="noopener" class="text-redbrand-500 hover:underline">gnews.io</a> (100 req/dia).';
+                    dica.innerHTML = 'Obtenha sua chave gratuita em <a href="https://gnews.io" target="_blank" rel="noopener noreferrer" class="text-redbrand-500 hover:underline">gnews.io</a> (100 req/dia).';
                 } else if (prov === 'newsdata') {
-                    dica.innerHTML = 'Obtenha sua chave gratuita em <a href="https://newsdata.io" target="_blank" rel="noopener" class="text-redbrand-500 hover:underline">newsdata.io</a> (200 créditos/dia).';
+                    dica.innerHTML = 'Obtenha sua chave gratuita em <a href="https://newsdata.io" target="_blank" rel="noopener noreferrer" class="text-redbrand-500 hover:underline">newsdata.io</a> (200 créditos/dia).';
                 }
             }
         }
@@ -723,7 +822,7 @@ function salvarConfiguracoes() {
     const input = document.getElementById('input-apikey');
 
     state.provider = select ? select.value : 'rss';
-    state.apiKey = input ? input.value.trim() : '';
+    state.apiKey = input ? input.value.trim().substring(0, 200) : '';
 
     localStorage.setItem('infonews_provider', state.provider);
     localStorage.setItem('infonews_apikey', state.apiKey);
@@ -762,13 +861,13 @@ function configurarFechamentoBackdrop() {
    Compartilhamento e Notificações (Toast)
    ========================================================================== */
 function compartilhar(titulo, url) {
-    const decTitulo = decodeURIComponent(titulo);
-    const decUrl = decodeURIComponent(url);
+    const tituloLimpo = String(titulo || 'InfoNews').trim();
+    const urlLimpa = sanitizeUrl(url);
 
     if (navigator.share) {
-        navigator.share({ title: decTitulo, url: decUrl }).catch(() => {});
+        navigator.share({ title: tituloLimpo, url: urlLimpa }).catch(() => {});
     } else {
-        navigator.clipboard.writeText(`${decTitulo} - ${decUrl}`).then(() => {
+        navigator.clipboard.writeText(`${tituloLimpo} - ${urlLimpa}`).then(() => {
             mostrarToast('Link copiado para a área de transferência!');
         }).catch(() => {
             mostrarToast('Não foi possível copiar o link.');
@@ -784,7 +883,8 @@ function mostrarToast(mensagem) {
         toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 border border-slate-700 dark:border-slate-200 transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none';
         document.body.appendChild(toast);
     }
-    toast.innerHTML = `<i class="fa-solid fa-circle-check text-redbrand-500"></i> <span>${mensagem}</span>`;
+    const safeMsg = escapeHTML(mensagem);
+    toast.innerHTML = `<i class="fa-solid fa-circle-check text-redbrand-500"></i> <span>${safeMsg}</span>`;
     toast.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
     setTimeout(() => {
         toast.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');

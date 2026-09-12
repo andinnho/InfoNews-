@@ -4,9 +4,21 @@ Thumbs.db
 desktop.ini
 *.log
 
+# Segredos, Chaves e Variáveis de Ambiente
+.env
+.env.*
+*.pem
+*.key
+*.cert
+*.pfx
+
 # Editores e IDEs
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
 
-# Dependências eventuais
+# Plataformas de Deploy e Build
+.vercel
+.netlify
 node_modules/
