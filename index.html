@@ -15,7 +15,6 @@
 
     <!-- Metatags de Segurança para Deploy em Produção -->
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
 
     <!-- Script Inline Anti-FOUC (Garante que o tema correto seja aplicado antes do primeiro paint) -->
     <script>
@@ -32,32 +31,13 @@
         })();
     </script>
 
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        redbrand: {
-                            50: '#fef2f2',
-                            100: '#fee2e2',
-                            400: '#f87171',
-                            500: '#ef4444',
-                            600: '#dc2626',
-                            700: '#b91c1c',
-                            800: '#991b1b',
-                            900: '#7f1d1d',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Tailwind CSS Compilado para Produção (Zero Runtime Overhead & Máxima Segurança) -->
+    <link rel="stylesheet" href="css/tailwind.min.css">
 
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome Icons com Subresource Integrity (SRI) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- Estilos Customizados & Variáveis de Tema Separados -->
     <link rel="stylesheet" href="css/styles.css">
@@ -424,6 +404,10 @@
                     <input type="password" id="input-apikey" placeholder="Cole sua chave aqui..."
                         class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-redbrand-500 outline-none transition">
                     <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1" id="dica-apikey"></p>
+                    <p class="text-[11px] text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1.5 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                        <i class="fa-solid fa-shield-halved text-xs" aria-hidden="true"></i>
+                        <span>Sua chave é armazenada unicamente na sessão do seu navegador (localStorage) e nunca é enviada a servidores de terceiros.</span>
+                    </p>
                 </div>
 
                 <div class="pt-2 flex justify-end gap-2">

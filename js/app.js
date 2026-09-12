@@ -4,6 +4,16 @@
  * Controle de Tema Claro/Escuro, Filtros, Acessibilidade e Segurança (AppSec)
  */
 
+// Helper seguro para leitura de coordenadas evitando crash fatal em JSON corrompido
+function getStoredCoords() {
+    try {
+        const val = localStorage.getItem('infonews_coords');
+        return val ? JSON.parse(val) : { lat: -23.5475, lon: -46.6361 };
+    } catch (e) {
+        return { lat: -23.5475, lon: -46.6361 };
+    }
+}
+
 // Estado Global da Aplicação
 const state = {
     categoriaAtual: 'tecnologia',
@@ -11,7 +21,7 @@ const state = {
     provider: localStorage.getItem('infonews_provider') || 'rss',
     apiKey: localStorage.getItem('infonews_apikey') || '',
     cidadeClima: localStorage.getItem('infonews_cidade') || 'São Paulo',
-    climaCoords: JSON.parse(localStorage.getItem('infonews_coords')) || { lat: -23.5475, lon: -46.6361 },
+    climaCoords: getStoredCoords(),
     noticias: [],
     todasNoticias: [],
     tema: localStorage.getItem('infonews_theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
@@ -170,7 +180,8 @@ function sanitizeImageUrl(url, fallbackUrl) {
     try {
         const parsed = new URL(trimmed, window.location.href);
         if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
-            return parsed.href;
+            // Evita avisos de conteúdo misto em HTTPS forçando upgrade de http para https
+            return parsed.href.replace(/^http:\/\//i, 'https://');
         }
     } catch (e) {}
     return fallbackUrl;
@@ -532,10 +543,29 @@ async function carregarNoticias() {
 }
 
 async function fetchSingleRssFeed(feedObj) {
-    const apiUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedObj.url)}`;
-    const res = await fetchWithTimeout(apiUrl, {}, 8000);
-    if (!res.ok) throw new Error(`Falha HTTP ao acessar ${feedObj.nome}`);
-    const data = await res.json();
+    // 1. Tenta primeiro a Serverless Function Netlify com cache na borda (elimina rate limits e adulteração)
+    const netlifyProxyUrl = `/.netlify/functions/rss-proxy?url=${encodeURIComponent(feedObj.url)}`;
+    const publicProxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedObj.url)}`;
+
+    let data;
+    try {
+        const netlifyRes = await fetchWithTimeout(netlifyProxyUrl, {}, 6000);
+        if (netlifyRes.ok) {
+            const netlifyData = await netlifyRes.json();
+            if (netlifyData && netlifyData.status === 'ok' && Array.isArray(netlifyData.items)) {
+                data = netlifyData;
+            }
+        }
+    } catch (e) {
+        // Ambiente local sem Netlify Functions ativo: fallback automático para proxy público
+    }
+
+    if (!data) {
+        const res = await fetchWithTimeout(publicProxyUrl, {}, 8000);
+        if (!res.ok) throw new Error(`Falha HTTP ao acessar ${feedObj.nome}`);
+        data = await res.json();
+    }
+
     if (data.status !== 'ok' || !data.items) return [];
 
     const parser = new DOMParser();

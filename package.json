@@ -1,0 +1,11 @@
+{
+  "name": "infonews",
+  "version": "1.0.0",
+  "description": "InfoNews - Radar de Notícias, Clima e Câmbio em Tempo Real",
+  "scripts": {
+    "build": "npx tailwindcss -i ./css/input.css -o ./css/tailwind.min.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
