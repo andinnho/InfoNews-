@@ -53,26 +53,50 @@
         class="bg-white/95 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 text-xs py-2 px-4 sm:px-6 lg:px-8 sticky top-0 z-50 backdrop-blur transition-colors duration-300">
         <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-y-2 gap-x-4">
 
-            <!-- Widget de Clima / Previsão do Tempo -->
-            <div id="widget-clima" class="flex items-center gap-2.5">
-                <span id="clima-icone" class="text-base text-sky-500 dark:text-sky-400 flex items-center" aria-hidden="true">
-                    <i class="fa-solid fa-cloud-sun"></i>
-                </span>
+            <!-- Widget de Clima / Previsão do Tempo (Expandido e Informativo) -->
+            <div id="widget-clima" class="flex items-center flex-wrap gap-2.5 sm:gap-3">
+                <div class="flex items-center gap-1.5 cursor-pointer hover:opacity-85 transition" onclick="abrirModalMeteorologia()" title="Clique para ver previsão completa">
+                    <span id="clima-icone" class="text-lg text-sky-500 dark:text-sky-400 flex items-center" aria-hidden="true">
+                        <i class="fa-solid fa-cloud-sun"></i>
+                    </span>
+                    <span id="clima-atual-temp" class="text-sm font-black text-slate-900 dark:text-white tracking-tight">--°C</span>
+                </div>
+
                 <div class="flex items-center gap-1.5 font-medium">
                     <button type="button" id="clima-cidade" class="text-slate-700 dark:text-slate-200 hover:text-redbrand-600 dark:hover:text-white cursor-pointer transition font-semibold"
-                        onclick="abrirModalCidade()" aria-label="Cidade atual: São Paulo. Clique para alterar">
+                        onclick="abrirModalMeteorologia()" aria-label="Cidade atual: São Paulo. Clique para abrir central meteorológica">
                         São Paulo
                     </button>
-                    <button type="button" onclick="abrirModalCidade()"
+                    <button type="button" onclick="abrirModalMeteorologia()"
                         class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-[11px] p-1 rounded transition"
-                        title="Alterar cidade do clima" aria-label="Buscar e alterar cidade">
+                        title="Pesquisar cidade ou ver detalhes" aria-label="Pesquisar cidade">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </button>
                 </div>
-                <div class="flex items-center gap-1.5 font-bold tracking-tight">
-                    <span id="clima-max" class="text-red-500 font-semibold" title="Temperatura Máxima">--°C</span>
-                    <span id="clima-min" class="text-sky-500 dark:text-sky-400 font-semibold" title="Temperatura Mínima">--°C</span>
+
+                <div class="flex items-center gap-1.5 font-bold tracking-tight text-xs">
+                    <span id="clima-max" class="text-red-500 font-bold" title="Temperatura Máxima">--°</span>
+                    <span class="text-slate-300 dark:text-slate-700 font-normal">/</span>
+                    <span id="clima-min" class="text-sky-500 dark:text-sky-400 font-bold" title="Temperatura Mínima">--°</span>
                 </div>
+
+                <span class="hidden sm:inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[11px] font-medium" title="Umidade Relativa do Ar">
+                    <i class="fa-solid fa-droplet text-sky-400 text-[10px]" aria-hidden="true"></i>
+                    <span id="clima-umidade">--%</span>
+                </span>
+
+                <span class="hidden lg:inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[11px] font-medium" title="Probabilidade de Chuva">
+                    <i class="fa-solid fa-cloud-rain text-indigo-400 text-[10px]" aria-hidden="true"></i>
+                    <span id="clima-chuva">--%</span>
+                </span>
+
+                <button type="button" onclick="abrirModalMeteorologia()"
+                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300 font-semibold text-[11px] border border-sky-500/30 transition active:scale-95"
+                    title="Ver previsão completa para 7 dias e hora a hora">
+                    <i class="fa-solid fa-chart-line text-[10px]" aria-hidden="true"></i>
+                    <span>Previsão Completa</span>
+                    <i class="fa-solid fa-chevron-down text-[9px]" aria-hidden="true"></i>
+                </button>
             </div>
 
             <!-- Widget de Câmbio em Tempo Real -->
@@ -326,46 +350,6 @@
         </div>
     </main>
 
-    <!-- Modal: Localização e Cidade do Clima -->
-    <div id="modal-cidade" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-clima"
-        class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden transition-opacity">
-        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative">
-            <button type="button" onclick="fecharModalCidade()"
-                class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg transition"
-                aria-label="Fechar modal de cidade">
-                <i class="fa-solid fa-xmark text-lg"></i>
-            </button>
-
-            <h3 id="titulo-modal-clima" class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-1.5">
-                <i class="fa-solid fa-location-dot text-redbrand-500" aria-hidden="true"></i> Localização do Clima
-            </h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                Digite o nome da sua cidade para obter a previsão do tempo em tempo real.
-            </p>
-
-            <form onsubmit="salvarCidade(event)" class="space-y-4">
-                <div>
-                    <label for="input-cidade-clima" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                        Nome da Cidade
-                    </label>
-                    <input type="text" id="input-cidade-clima"
-                        placeholder="Ex: São Paulo, Uberlândia, Lisboa..."
-                        class="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-redbrand-500 outline-none transition"
-                        required>
-                </div>
-                <div class="flex justify-end gap-2 pt-1">
-                    <button type="button" onclick="fecharModalCidade()"
-                        class="px-3.5 py-2 rounded-xl text-xs font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition">
-                        Cancelar
-                    </button>
-                    <button type="submit"
-                        class="px-4 py-2 bg-redbrand-600 hover:bg-redbrand-700 text-white rounded-xl text-xs font-semibold shadow transition active:scale-95">
-                        Atualizar Clima
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- Modal: Configurações de Provedores de Notícias -->
     <div id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-settings"
@@ -436,6 +420,199 @@
             </p>
         </div>
     </footer>
+
+    <!-- Modal Completo: Central Meteorológica & Previsão Detalhada -->
+    <div id="modal-meteorologia" role="dialog" aria-modal="true" aria-labelledby="titulo-modal-meteo"
+        class="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 hidden transition-opacity overflow-y-auto">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-4xl w-full p-5 sm:p-7 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            
+            <button type="button" onclick="fecharModalMeteorologia()"
+                class="absolute top-4 right-4 text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                aria-label="Fechar central meteorológica">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+
+            <!-- Cabeçalho -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 border-b border-slate-200 dark:border-slate-800 pb-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-500 flex items-center justify-center">
+                            <i class="fa-solid fa-cloud-sun-rain text-base"></i>
+                        </div>
+                        <h2 id="titulo-modal-meteo" class="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                            Central Meteorológica & Previsão
+                        </h2>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        Dados de satélite e modelos numéricos em tempo real via Open-Meteo
+                    </p>
+                </div>
+
+                <button type="button" onclick="detectarLocalizacaoGPS()"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700 transition active:scale-95">
+                    <i class="fa-solid fa-location-crosshairs text-sky-500 text-sm"></i>
+                    <span>Usar Meu GPS</span>
+                </button>
+            </div>
+
+            <!-- Busca & Cidades Rápidas -->
+            <div class="space-y-3 mb-6">
+                <form onsubmit="salvarCidadeMeteo(event)" class="flex gap-2">
+                    <div class="relative flex-grow">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="input-busca-cidade-meteo"
+                            placeholder="Buscar cidade (Ex: Uberlândia, São Paulo, Lisboa, Curitiba...)"
+                            class="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-sky-500 outline-none transition">
+                    </div>
+                    <button type="submit" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95 whitespace-nowrap">
+                        Buscar
+                    </button>
+                </form>
+
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                    <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap mr-1">Rápido:</span>
+                    <button type="button" onclick="selecionarCidadeRapida('São Paulo', -23.5475, -46.6361)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">São Paulo</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Uberlândia', -18.9186, -48.2772)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Uberlândia</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Rio de Janeiro', -22.9068, -43.1729)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Rio de Janeiro</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Belo Horizonte', -19.9167, -43.9345)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Belo Horizonte</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Brasília', -15.7797, -47.9297)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Brasília</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Curitiba', -25.4284, -49.2733)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Curitiba</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Porto Alegre', -30.0346, -51.2177)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Porto Alegre</button>
+                </div>
+            </div>
+
+            <!-- Hero & Métricas -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6">
+                <!-- Coluna Hero -->
+                <div class="lg:col-span-5 weather-gradient-hero rounded-2xl p-5 border border-sky-500/20 flex flex-col justify-between shadow-sm">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span> TEMPO AGORA
+                            </span>
+                            <span id="meteo-atual-horario" class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">--:--</span>
+                        </div>
+                        <h3 id="meteo-atual-cidade" class="text-2xl font-black text-slate-900 dark:text-white mt-2">São Paulo</h3>
+                        <p id="meteo-atual-condicao" class="text-sm font-semibold text-slate-600 dark:text-slate-300 capitalize mt-0.5">Carregando...</p>
+                    </div>
+
+                    <div class="flex items-center justify-between my-4">
+                        <div>
+                            <div class="flex items-start">
+                                <span id="meteo-atual-temp" class="text-5xl sm:text-6xl font-black text-slate-900 dark:text-white tracking-tighter">--</span>
+                                <span class="text-2xl font-bold text-sky-500 dark:text-sky-400 ml-0.5">°C</span>
+                            </div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                Sensação térmica: <strong id="meteo-atual-sensacao" class="text-slate-700 dark:text-slate-200">--°C</strong>
+                            </p>
+                        </div>
+                        <div id="meteo-atual-icone-grande" class="text-5xl sm:text-6xl text-sky-500 dark:text-sky-400 pr-2">
+                            <i class="fa-solid fa-cloud-sun"></i>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-200/60 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-slate-600 dark:text-slate-400">
+                            Variação do dia: 
+                            <strong class="text-red-500 ml-1" id="meteo-hero-max">Máx --°C</strong>
+                            <strong class="text-sky-500 dark:text-sky-400 ml-2" id="meteo-hero-min">Mín --°C</strong>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- 6 Métricas -->
+                <div class="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400">
+                            <span class="text-[11px] font-semibold uppercase tracking-wider">Sensação</span>
+                            <i class="fa-solid fa-temperature-half text-amber-500"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span id="meteo-card-sensacao" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">--°C</span>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Índice corporal</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400">
+                            <span class="text-[11px] font-semibold uppercase tracking-wider">Umidade</span>
+                            <i class="fa-solid fa-droplet text-sky-400"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span id="meteo-card-umidade" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">--%</span>
+                            <p id="meteo-card-umidade-desc" class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Nível de umidade</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400">
+                            <span class="text-[11px] font-semibold uppercase tracking-wider">Chuva Hoje</span>
+                            <i class="fa-solid fa-cloud-showers-heavy text-indigo-400"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span id="meteo-card-chuva" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">--%</span>
+                            <p id="meteo-card-precip-vol" class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">0.0 mm estimados</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400">
+                            <span class="text-[11px] font-semibold uppercase tracking-wider">Vento</span>
+                            <i class="fa-solid fa-wind text-teal-400"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span id="meteo-card-vento" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">-- km/h</span>
+                            <p id="meteo-card-vento-dir" class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Direção do vento</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400">
+                            <span class="text-[11px] font-semibold uppercase tracking-wider">Índice UV</span>
+                            <i class="fa-solid fa-sun text-yellow-500"></i>
+                        </div>
+                        <div class="mt-2">
+                            <span id="meteo-card-uv" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">--</span>
+                            <p id="meteo-card-uv-desc" class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Nível de radiação</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-slate-400">
+                            <span class="text-[11px] font-semibold uppercase tracking-wider">Sol</span>
+                            <i class="fa-solid fa-mountain-sun text-orange-400"></i>
+                        </div>
+                        <div class="mt-2 text-xs">
+                            <div class="flex items-center justify-between text-slate-700 dark:text-slate-200 font-bold">
+                                <span>🌅 <span id="meteo-card-nascer">--:--</span></span>
+                                <span>🌇 <span id="meteo-card-por">--:--</span></span>
+                            </div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">Horário solar local</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hora a Hora -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-clock text-sky-500"></i> Previsão Hora a Hora (Próximas 24h)
+                    </h4>
+                    <span class="text-[11px] text-slate-400">Role para o lado ➔</span>
+                </div>
+                <div id="meteo-hora-a-hora" class="flex gap-2.5 overflow-x-auto pb-2 no-scrollbar"></div>
+            </div>
+
+            <!-- 7 Dias -->
+            <div>
+                <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
+                    <i class="fa-solid fa-calendar-days text-sky-500"></i> Previsão Estendida para os Próximos 7 Dias
+                </h4>
+                <div id="meteo-previsao-7dias" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
 
 </body>
 

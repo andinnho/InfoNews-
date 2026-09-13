@@ -339,52 +339,263 @@ async function carregarCambio() {
 }
 
 /* ==========================================================================
-   Previsão do Tempo (Open-Meteo)
+   Previsão do Tempo Completa (Open-Meteo)
    ========================================================================== */
 async function carregarClima() {
     const elCidade = document.getElementById('clima-cidade');
+    const elAtualTemp = document.getElementById('clima-atual-temp');
     const elMax = document.getElementById('clima-max');
     const elMin = document.getElementById('clima-min');
     const elIcone = document.getElementById('clima-icone');
+    const elUmidade = document.getElementById('clima-umidade');
+    const elChuva = document.getElementById('clima-chuva');
 
-    if (elCidade) elCidade.innerText = escapeHTML(state.cidadeClima);
+    if (elCidade) elCidade.innerText = state.cidadeClima;
 
     try {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(state.climaCoords.lat)}&longitude=${encodeURIComponent(state.climaCoords.lon)}&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto&forecast_days=1`;
-        const res = await fetchWithTimeout(url, {}, 7000);
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${state.climaCoords.lat}&longitude=${state.climaCoords.lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,surface_pressure&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,sunrise,sunset,precipitation_probability_max,uv_index_max&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&forecast_days=7`;
+        const res = await fetch(url);
         if (!res.ok) return;
         const data = await res.json();
 
-        if (data.daily) {
+        // 1. Condições Atuais
+        if (data.current) {
+            const tempAtual = Math.round(data.current.temperature_2m);
+            const wmo = getWMODetalhado(data.current.weather_code);
+            const umidade = data.current.relative_humidity_2m;
+            const sensacao = Math.round(data.current.apparent_temperature);
+            const vento = Math.round(data.current.wind_speed_10m);
+            const ventoDir = getDirecaoVento(data.current.wind_direction_10m);
+            const precipVol = (data.current.precipitation || 0).toFixed(1);
+
+            if (elAtualTemp) elAtualTemp.innerText = `${tempAtual}°C`;
+            if (elIcone) elIcone.innerHTML = `<i class="fa-solid ${wmo.icone} ${wmo.cor}"></i>`;
+            if (elUmidade) elUmidade.innerText = `${umidade}%`;
+
+            const elMeteoCidade = document.getElementById('meteo-atual-cidade');
+            const elMeteoCond = document.getElementById('meteo-atual-condicao');
+            const elMeteoTemp = document.getElementById('meteo-atual-temp');
+            const elMeteoSens = document.getElementById('meteo-atual-sensacao');
+            const elMeteoIconeG = document.getElementById('meteo-atual-icone-grande');
+            const elMeteoHorario = document.getElementById('meteo-atual-horario');
+
+            if (elMeteoCidade) elMeteoCidade.innerText = state.cidadeClima;
+            if (elMeteoCond) elMeteoCond.innerText = wmo.descricao;
+            if (elMeteoTemp) elMeteoTemp.innerText = tempAtual;
+            if (elMeteoSens) elMeteoSens.innerText = `${sensacao}°C`;
+            if (elMeteoIconeG) elMeteoIconeG.innerHTML = `<i class="fa-solid ${wmo.icone} ${wmo.cor}"></i>`;
+            if (elMeteoHorario) {
+                const agora = new Date();
+                elMeteoHorario.innerText = `Atualizado às ${agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+            }
+
+            const cardSensacao = document.getElementById('meteo-card-sensacao');
+            const cardUmidade = document.getElementById('meteo-card-umidade');
+            const cardUmidadeDesc = document.getElementById('meteo-card-umidade-desc');
+            const cardVento = document.getElementById('meteo-card-vento');
+            const cardVentoDir = document.getElementById('meteo-card-vento-dir');
+            const cardPrecipVol = document.getElementById('meteo-card-precip-vol');
+
+            if (cardSensacao) cardSensacao.innerText = `${sensacao}°C`;
+            if (cardUmidade) cardUmidade.innerText = `${umidade}%`;
+            if (cardUmidadeDesc) cardUmidadeDesc.innerText = getNivelUmidade(umidade);
+            if (cardVento) cardVento.innerText = `${vento} km/h`;
+            if (cardVentoDir) cardVentoDir.innerText = `${ventoDir} (${data.current.wind_direction_10m}°)`;
+            if (cardPrecipVol) cardPrecipVol.innerText = `${precipVol} mm acumulados`;
+        }
+
+        // 2. Dados Diários (7 dias)
+        if (data.daily && data.daily.time && data.daily.time.length > 0) {
             const maxTemp = Math.round(data.daily.temperature_2m_max[0]);
             const minTemp = Math.round(data.daily.temperature_2m_min[0]);
-            const code = data.daily.weather_code[0];
+            const chuvaMax = data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[0] : 0;
+            const uvMax = data.daily.uv_index_max ? Math.round(data.daily.uv_index_max[0]) : 0;
+            const nascer = formatarHoraISO(data.daily.sunrise ? data.daily.sunrise[0] : '');
+            const por = formatarHoraISO(data.daily.sunset ? data.daily.sunset[0] : '');
 
-            if (elMax) elMax.innerText = `${maxTemp}°C`;
-            if (elMin) elMin.innerText = `${minTemp}°C`;
-            if (elIcone) elIcone.innerHTML = getIconeClima(code);
+            if (elMax) elMax.innerText = `${maxTemp}°`;
+            if (elMin) elMin.innerText = `${minTemp}°`;
+            if (elChuva) elChuva.innerText = `${chuvaMax}%`;
+
+            const heroMax = document.getElementById('meteo-hero-max');
+            const heroMin = document.getElementById('meteo-hero-min');
+            if (heroMax) heroMax.innerText = `Máx ${maxTemp}°C`;
+            if (heroMin) heroMin.innerText = `Mín ${minTemp}°C`;
+
+            const cardChuva = document.getElementById('meteo-card-chuva');
+            const cardUV = document.getElementById('meteo-card-uv');
+            const cardUVDesc = document.getElementById('meteo-card-uv-desc');
+            const cardNascer = document.getElementById('meteo-card-nascer');
+            const cardPor = document.getElementById('meteo-card-por');
+
+            if (cardChuva) cardChuva.innerText = `${chuvaMax}%`;
+            if (cardUV) cardUV.innerText = `${uvMax}`;
+            if (cardUVDesc) cardUVDesc.innerText = getNivelUV(uvMax);
+            if (cardNascer) cardNascer.innerText = nascer;
+            if (cardPor) cardPor.innerText = por;
+
+            renderizarPrevisao7Dias(data.daily);
         }
+
+        // 3. Previsão Hora a Hora (24h)
+        if (data.hourly && data.hourly.time) {
+            renderizarHoraAHora(data.hourly);
+        }
+
     } catch (err) {
-        console.warn('Falha ao obter clima:', err);
+        console.warn('Falha ao obter clima expandido:', err);
     }
 }
 
-function getIconeClima(code) {
-    if (code === 0) return '<i class="fa-solid fa-sun text-amber-500 dark:text-amber-400"></i>';
-    if (code >= 1 && code <= 2) return '<i class="fa-solid fa-cloud-sun text-amber-500 dark:text-amber-300"></i>';
-    if (code === 3) return '<i class="fa-solid fa-cloud text-slate-400 dark:text-slate-300"></i>';
-    if (code === 45 || code === 48) return '<i class="fa-solid fa-smog text-slate-400"></i>';
-    if (code >= 51 && code <= 57) return '<i class="fa-solid fa-cloud-rain text-sky-500 dark:text-sky-400"></i>';
-    if (code >= 61 && code <= 67) return '<i class="fa-solid fa-cloud-showers-heavy text-sky-500 dark:text-sky-400"></i>';
-    if (code >= 71 && code <= 77) return '<i class="fa-solid fa-snowflake text-sky-400 dark:text-sky-200"></i>';
-    if (code >= 80 && code <= 82) return '<i class="fa-solid fa-cloud-sun-rain text-sky-500 dark:text-sky-400"></i>';
-    if (code >= 95) return '<i class="fa-solid fa-cloud-bolt text-yellow-500 dark:text-yellow-400"></i>';
-    return '<i class="fa-solid fa-cloud-sun text-sky-500 dark:text-sky-400"></i>';
+function renderizarPrevisao7Dias(daily) {
+    const container = document.getElementById('meteo-previsao-7dias');
+    if (!container) return;
+    container.innerHTML = '';
+    const nomesDias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+    for (let i = 0; i < daily.time.length; i++) {
+        const dataObj = new Date(daily.time[i] + 'T00:00:00');
+        const diaSemana = i === 0 ? 'Hoje' : (i === 1 ? 'Amanhã' : nomesDias[dataObj.getDay()]);
+        const dataFormatada = `${String(dataObj.getDate()).padStart(2, '0')}/${String(dataObj.getMonth() + 1).padStart(2, '0')}`;
+        const wmo = getWMODetalhado(daily.weather_code[i]);
+        const max = Math.round(daily.temperature_2m_max[i]);
+        const min = Math.round(daily.temperature_2m_min[i]);
+        const probChuva = daily.precipitation_probability_max ? daily.precipitation_probability_max[i] : 0;
+
+        const row = document.createElement('div');
+        row.className = 'bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3 border border-slate-200 dark:border-slate-750 flex items-center justify-between gap-3 text-xs';
+        row.innerHTML = `
+            <div class="w-24 sm:w-28">
+                <span class="font-bold text-slate-900 dark:text-white">${diaSemana}</span>
+                <span class="text-[11px] text-slate-400 block">${dataFormatada}</span>
+            </div>
+            <div class="flex items-center gap-2 flex-grow">
+                <span class="text-base text-sky-500 w-6 text-center">
+                    <i class="fa-solid ${wmo.icone} ${wmo.cor}"></i>
+                </span>
+                <span class="text-[11px] text-slate-600 dark:text-slate-300 font-medium hidden sm:inline truncate max-w-[160px]">
+                    ${wmo.descricao}
+                </span>
+            </div>
+            <div class="w-16 text-center">
+                ${probChuva > 0 ? `
+                    <span class="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-500 bg-sky-500/10 dark:bg-sky-500/20 px-2 py-0.5 rounded-md">
+                        <i class="fa-solid fa-droplet text-[9px]"></i> ${probChuva}%
+                    </span>
+                ` : `<span class="text-[11px] text-slate-400">0%</span>`}
+            </div>
+            <div class="flex items-center gap-2 w-28 sm:w-36 justify-end font-mono">
+                <span class="text-sky-500 dark:text-sky-400 font-bold">${min}°</span>
+                <div class="w-12 sm:w-16 temp-bar-bg hidden sm:block"></div>
+                <span class="text-red-500 font-bold">${max}°</span>
+            </div>
+        `;
+        container.appendChild(row);
+    }
 }
 
-function abrirModalCidade() {
-    const modal = document.getElementById('modal-cidade');
-    const input = document.getElementById('input-cidade-clima');
+function renderizarHoraAHora(hourly) {
+    const container = document.getElementById('meteo-hora-a-hora');
+    if (!container) return;
+    container.innerHTML = '';
+    const agora = new Date();
+    const horaAtual = agora.getHours();
+
+    let indiceInicio = 0;
+    for (let i = 0; i < hourly.time.length; i++) {
+        const hDate = new Date(hourly.time[i]);
+        if (hDate >= agora || (hDate.getDate() === agora.getDate() && hDate.getHours() === horaAtual)) {
+            indiceInicio = i;
+            break;
+        }
+    }
+
+    const limite = Math.min(indiceInicio + 24, hourly.time.length);
+    for (let i = indiceInicio; i < limite; i++) {
+        const dataHora = new Date(hourly.time[i]);
+        const horaStr = dataHora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        const temp = Math.round(hourly.temperature_2m[i]);
+        const code = hourly.weather_code[i];
+        const wmo = getWMODetalhado(code);
+        const probChuva = hourly.precipitation_probability ? hourly.precipitation_probability[i] : 0;
+        const eAgora = i === indiceInicio;
+
+        const card = document.createElement('div');
+        card.className = `flex-shrink-0 w-20 rounded-xl p-2.5 flex flex-col items-center justify-between text-center border transition ${eAgora ? 'bg-sky-500/15 border-sky-500/50 shadow-sm' : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-750'}`;
+        card.innerHTML = `
+            <span class="text-[11px] font-bold ${eAgora ? 'text-sky-600 dark:text-sky-300' : 'text-slate-500 dark:text-slate-400'}">
+                ${eAgora ? 'Agora' : horaStr}
+            </span>
+            <span class="text-xl my-1.5"><i class="fa-solid ${wmo.icone} ${wmo.cor}"></i></span>
+            <span class="text-sm font-extrabold text-slate-900 dark:text-white font-mono">${temp}°</span>
+            <span class="text-[10px] text-sky-500 font-semibold mt-1 flex items-center gap-0.5">
+                <i class="fa-solid fa-droplet text-[8px]"></i> ${probChuva}%
+            </span>
+        `;
+        container.appendChild(card);
+    }
+}
+
+function getWMODetalhado(code) {
+    const mapa = {
+        0: { descricao: 'Céu Limpo Ensolarado', icone: 'fa-sun', cor: 'text-amber-500 dark:text-amber-400' },
+        1: { descricao: 'Predominantemente Limpo', icone: 'fa-cloud-sun', cor: 'text-amber-500 dark:text-amber-300' },
+        2: { descricao: 'Sol Entre Nuvens', icone: 'fa-cloud-sun', cor: 'text-amber-500 dark:text-amber-300' },
+        3: { descricao: 'Nublado / Encoberto', icone: 'fa-cloud', cor: 'text-slate-400 dark:text-slate-300' },
+        45: { descricao: 'Nevoeiro / Neblina', icone: 'fa-smog', cor: 'text-slate-400' },
+        48: { descricao: 'Nevoeiro Denso', icone: 'fa-smog', cor: 'text-slate-400' },
+        51: { descricao: 'Chuvisco Fraco', icone: 'fa-cloud-rain', cor: 'text-sky-400' },
+        53: { descricao: 'Chuvisco Moderado', icone: 'fa-cloud-rain', cor: 'text-sky-500' },
+        55: { descricao: 'Garoa Contínua', icone: 'fa-cloud-rain', cor: 'text-sky-500' },
+        61: { descricao: 'Chuva Leve', icone: 'fa-cloud-rain', cor: 'text-sky-500' },
+        63: { descricao: 'Chuva Moderada', icone: 'fa-cloud-showers-heavy', cor: 'text-sky-500' },
+        65: { descricao: 'Chuva Forte e Constante', icone: 'fa-cloud-showers-heavy', cor: 'text-blue-500' },
+        80: { descricao: 'Pancadas de Chuva Rápidas', icone: 'fa-cloud-sun-rain', cor: 'text-sky-500' },
+        81: { descricao: 'Pancadas de Chuva Moderadas', icone: 'fa-cloud-sun-rain', cor: 'text-sky-500' },
+        82: { descricao: 'Tempestade de Chuva Intensa', icone: 'fa-cloud-showers-water', cor: 'text-indigo-500' },
+        95: { descricao: 'Tempestade com Trovões', icone: 'fa-cloud-bolt', cor: 'text-yellow-500' },
+        96: { descricao: 'Tempestade com Granizo Leve', icone: 'fa-cloud-bolt', cor: 'text-yellow-500' },
+        99: { descricao: 'Tempestade Severa com Granizo', icone: 'fa-cloud-bolt', cor: 'text-yellow-500' }
+    };
+    return mapa[code] || { descricao: 'Tempo Instável', icone: 'fa-cloud-sun', cor: 'text-sky-400' };
+}
+
+function getDirecaoVento(graus) {
+    if (graus >= 337.5 || graus < 22.5) return 'Norte';
+    if (graus >= 22.5 && graus < 67.5) return 'Nordeste';
+    if (graus >= 67.5 && graus < 112.5) return 'Leste';
+    if (graus >= 112.5 && graus < 157.5) return 'Sudeste';
+    if (graus >= 157.5 && graus < 202.5) return 'Sul';
+    if (graus >= 202.5 && graus < 247.5) return 'Sudoeste';
+    if (graus >= 247.5 && graus < 292.5) return 'Oeste';
+    if (graus >= 292.5 && graus < 337.5) return 'Noroeste';
+    return 'Variável';
+}
+
+function getNivelUmidade(u) {
+    if (u < 30) return 'Ar muito seco (Atenção)';
+    if (u <= 60) return 'Umidade ideal e saudável';
+    if (u <= 80) return 'Umidade elevada';
+    return 'Ar saturado / Chuva iminente';
+}
+
+function getNivelUV(uv) {
+    if (uv <= 2) return 'Baixo (Sem risco)';
+    if (uv <= 5) return 'Moderado (Use protetor)';
+    if (uv <= 7) return 'Alto (Evite sol ao meio-dia)';
+    if (uv <= 10) return 'Muito Alto (Proteção extra)';
+    return 'Extremo (Perigo de radiação)';
+}
+
+function formatarHoraISO(iso) {
+    if (!iso) return '--:--';
+    const partes = iso.split('T');
+    return partes.length > 1 ? partes.substring(0, 5) : iso;
+}
+
+function abrirModalMeteorologia() {
+    const modal = document.getElementById('modal-meteorologia');
+    const input = document.getElementById('input-busca-cidade-meteo');
     if (input) input.value = state.cidadeClima;
     if (modal) {
         modal.classList.remove('hidden');
@@ -392,39 +603,86 @@ function abrirModalCidade() {
     }
 }
 
-function fecharModalCidade() {
-    const modal = document.getElementById('modal-cidade');
+function fecharModalMeteorologia() {
+    const modal = document.getElementById('modal-meteorologia');
     if (modal) modal.classList.add('hidden');
 }
 
-async function salvarCidade(e) {
+function abrirModalCidade() {
+    abrirModalMeteorologia();
+}
+
+function fecharModalCidade() {
+    fecharModalMeteorologia();
+}
+
+async function salvarCidadeMeteo(e) {
     e.preventDefault();
-    const input = document.getElementById('input-cidade-clima');
-    const nomeCidade = input ? input.value.trim().substring(0, 100) : '';
+    const input = document.getElementById('input-busca-cidade-meteo');
+    const nomeCidade = input ? input.value.trim() : '';
     if (!nomeCidade) return;
 
     try {
         const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(nomeCidade)}&count=1&language=pt&format=json`;
-        const res = await fetchWithTimeout(geoUrl, {}, 7000);
+        const res = await fetch(geoUrl);
         const geoData = await res.json();
 
         if (geoData.results && geoData.results.length > 0) {
             const local = geoData.results[0];
-            state.cidadeClima = local.name;
+            state.cidadeClima = `${local.name}${local.admin1 ? ' - ' + local.admin1 : ''}`;
             state.climaCoords = { lat: local.latitude, lon: local.longitude };
 
             localStorage.setItem('infonews_cidade', state.cidadeClima);
             localStorage.setItem('infonews_coords', JSON.stringify(state.climaCoords));
 
-            fecharModalCidade();
-            carregarClima();
-            mostrarToast(`Previsão atualizada para ${local.name}!`);
+            await carregarClima();
+            mostrarToast(`Previsão atualizada para ${state.cidadeClima}!`);
         } else {
-            alert('Cidade não encontrada. Tente incluir estado ou país (ex: Uberlândia, Brasil).');
+            alert('Cidade não encontrada. Verifique o nome digitado e tente novamente.');
         }
     } catch (err) {
         alert('Erro ao buscar localização da cidade.');
     }
+}
+
+async function selecionarCidadeRapida(nome, lat, lon) {
+    state.cidadeClima = nome;
+    state.climaCoords = { lat, lon };
+
+    localStorage.setItem('infonews_cidade', state.cidadeClima);
+    localStorage.setItem('infonews_coords', JSON.stringify(state.climaCoords));
+
+    await carregarClima();
+    mostrarToast(`Localização alterada para ${nome}!`);
+}
+
+function detectarLocalizacaoGPS() {
+    if (!navigator.geolocation) {
+        alert('Geolocalização não é suportada pelo seu navegador.');
+        return;
+    }
+
+    mostrarToast('Consultando seu GPS...');
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            state.cidadeClima = 'Localização Atual (GPS)';
+            state.climaCoords = { lat, lon };
+
+            localStorage.setItem('infonews_cidade', state.cidadeClima);
+            localStorage.setItem('infonews_coords', JSON.stringify(state.climaCoords));
+
+            await carregarClima();
+            mostrarToast('Previsão atualizada com base no seu GPS!');
+        },
+        (error) => {
+            alert('Não foi possível obter sua localização. Verifique se a permissão foi concedida.');
+        },
+        { timeout: 10000 }
+    );
 }
 
 /* ==========================================================================
@@ -875,7 +1133,7 @@ function configurarEventosTeclado() {
 }
 
 function configurarFechamentoBackdrop() {
-    ['modal-cidade', 'modal-settings'].forEach(modalId => {
+    ['modal-meteorologia', 'modal-settings'].forEach(modalId => {
         const modal = document.getElementById(modalId);
         if (modal) {
             modal.addEventListener('click', (e) => {

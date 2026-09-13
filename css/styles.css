@@ -190,3 +190,18 @@ html.dark .skeleton-shimmer {
 .live-indicator {
     animation: pulse-dot 2s infinite ease-in-out;
 }
+
+/* Estilos de Destaque Meteorológico */
+.weather-gradient-hero {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(59, 130, 246, 0.08) 50%, rgba(220, 38, 38, 0.06) 100%);
+}
+
+html.dark .weather-gradient-hero {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.18) 0%, rgba(59, 130, 246, 0.12) 50%, rgba(220, 38, 38, 0.1) 100%);
+}
+
+.temp-bar-bg {
+    height: 6px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, #38bdf8, #f59e0b, #ef4444);
+}
