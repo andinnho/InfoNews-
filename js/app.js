@@ -291,6 +291,7 @@ async function carregarCambio() {
             const variacaoDolar = parseFloat(data.USDBRL.pctChange);
             const elVal = document.getElementById('cambio-dolar-val');
             const elArrow = document.getElementById('cambio-dolar-arrow');
+            const elDesc = document.getElementById('cambio-dolar-desc');
 
             if (elVal) elVal.innerText = valorDolar;
             if (elArrow) {
@@ -298,10 +299,12 @@ async function carregarCambio() {
                     elArrow.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
                     elArrow.className = 'text-emerald-500 dark:text-emerald-400 text-[11px]';
                     if (elVal) elVal.className = 'text-emerald-600 dark:text-emerald-400 font-mono';
+                    if (elDesc) elDesc.innerText = 'em alta';
                 } else {
                     elArrow.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
                     elArrow.className = 'text-red-500 dark:text-red-400 text-[11px]';
                     if (elVal) elVal.className = 'text-red-600 dark:text-red-400 font-mono';
+                    if (elDesc) elDesc.innerText = 'em queda';
                 }
             }
         }
@@ -312,6 +315,7 @@ async function carregarCambio() {
             const variacaoEuro = parseFloat(data.EURBRL.pctChange);
             const elVal = document.getElementById('cambio-euro-val');
             const elArrow = document.getElementById('cambio-euro-arrow');
+            const elDesc = document.getElementById('cambio-euro-desc');
 
             if (elVal) elVal.innerText = valorEuro;
             if (elArrow) {
@@ -319,10 +323,12 @@ async function carregarCambio() {
                     elArrow.innerHTML = '<i class="fa-solid fa-arrow-up"></i>';
                     elArrow.className = 'text-emerald-500 dark:text-emerald-400 text-[11px]';
                     if (elVal) elVal.className = 'text-emerald-600 dark:text-emerald-400 font-mono';
+                    if (elDesc) elDesc.innerText = 'em alta';
                 } else {
                     elArrow.innerHTML = '<i class="fa-solid fa-arrow-down"></i>';
                     elArrow.className = 'text-red-500 dark:text-red-400 text-[11px]';
                     if (elVal) elVal.className = 'text-red-600 dark:text-red-400 font-mono';
+                    if (elDesc) elDesc.innerText = 'em queda';
                 }
             }
         }
@@ -593,23 +599,46 @@ function formatarHoraISO(iso) {
     return partes.length > 1 ? partes.substring(0, 5) : iso;
 }
 
-function abrirModalMeteorologia() {
+// Gerenciamento de Acessibilidade (A11y / WAI-ARIA)
+let elementoDisparadorModal = null;
+
+function anunciarParaLeitor(mensagem) {
+    const el = document.getElementById('aria-anunciador');
+    if (el) {
+        el.textContent = '';
+        setTimeout(() => {
+            el.textContent = mensagem;
+        }, 60);
+    }
+}
+
+function abrirModalMeteorologia(trigger = null) {
+    elementoDisparadorModal = trigger || document.activeElement;
     const modal = document.getElementById('modal-meteorologia');
     const input = document.getElementById('input-busca-cidade-meteo');
     if (input) input.value = state.cidadeClima;
     if (modal) {
         modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
         if (input) setTimeout(() => input.focus(), 100);
+        anunciarParaLeitor('Central Meteorológica aberta. Pressione Escape para fechar.');
     }
 }
 
 function fecharModalMeteorologia() {
     const modal = document.getElementById('modal-meteorologia');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        if (elementoDisparadorModal && typeof elementoDisparadorModal.focus === 'function') {
+            elementoDisparadorModal.focus();
+        }
+        anunciarParaLeitor('Central Meteorológica fechada.');
+    }
 }
 
-function abrirModalCidade() {
-    abrirModalMeteorologia();
+function abrirModalCidade(trigger = null) {
+    abrirModalMeteorologia(trigger);
 }
 
 function fecharModalCidade() {
@@ -714,12 +743,15 @@ function selecionarCategoria(cat) {
         }
     }
 
+    anunciarParaLeitor(`Nicho alterado para ${cat}. Carregando notícias...`);
     carregarNoticias();
 }
 
 function selecionarPortalTech(portalKey) {
     state.portalTechAtual = portalKey;
     atualizarClassesBotoesFiltro();
+    const nomePortal = portalKey === 'todos' ? 'Todos os portais agregados' : (TECH_PORTAIS[portalKey]?.nome || portalKey);
+    anunciarParaLeitor(`Filtrando notícias pelo portal: ${nomePortal}.`);
     carregarNoticias();
 }
 
@@ -780,17 +812,20 @@ async function carregarNoticias() {
 
         state.todasNoticias = items;
         renderizarNoticias(items);
+        anunciarParaLeitor(`${items.length} notícias carregadas.`);
     } catch (err) {
         console.error('Erro na requisição de notícias:', err);
         if (CONTINGENCY_NEWS.length > 0) {
             state.todasNoticias = CONTINGENCY_NEWS;
             renderizarNoticias(CONTINGENCY_NEWS);
             mostrarToast('Carregando notícias em cache (modo reserva)');
+            anunciarParaLeitor('Carregando notícias em cache de reserva.');
         } else {
             if (empty) {
                 empty.classList.remove('hidden');
                 const msg = document.getElementById('msg-estado-vazio');
                 if (msg) msg.innerText = `Não foi possível carregar os portais no momento. Tente recarregar em instantes.`;
+                anunciarParaLeitor('Nenhuma notícia encontrada.');
             }
         }
     } finally {
@@ -1007,7 +1042,9 @@ function renderizarNoticias(lista) {
                         <time datetime="${safeIsoDate}">${safeDate}</time>
                     </div>
                     <h2 class="text-base font-bold text-slate-900 dark:text-white group-hover:text-redbrand-600 dark:group-hover:text-redbrand-400 transition-colors line-clamp-2 mb-2 leading-snug">
-                        <a href="${safeLink}" target="_blank" rel="noopener noreferrer">${safeTitulo}</a>
+                        <a href="${safeLink}" target="_blank" rel="noopener noreferrer" class="focus:outline-none focus-visible:underline">
+                            ${safeTitulo} <span class="sr-only">(abre em nova aba)</span>
+                        </a>
                     </h2>
                     <p class="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 mb-4 leading-relaxed">
                         ${safeResumo}
@@ -1019,17 +1056,18 @@ function renderizarNoticias(lista) {
                         href="${safeLink}" 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        class="inline-flex items-center gap-1.5 text-xs font-bold text-redbrand-600 dark:text-redbrand-500 hover:text-redbrand-700 dark:hover:text-redbrand-400 transition"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-redbrand-600 dark:text-redbrand-500 hover:text-redbrand-700 dark:hover:text-redbrand-400 transition focus:outline-none focus-visible:underline"
+                        aria-label="Ler notícia completa no ${safeFonte} (abre em nova aba)"
                     >
-                        Ler no ${safeFonte} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                        Ler no ${safeFonte} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]" aria-hidden="true"></i>
                     </a>
                     <button 
                         type="button"
-                        class="btn-share text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition" 
+                        class="btn-share text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-redbrand-500" 
                         title="Compartilhar notícia"
                         aria-label="Compartilhar notícia: ${safeTitulo}"
                     >
-                        <i class="fa-solid fa-share-nodes text-xs"></i>
+                        <i class="fa-solid fa-share-nodes text-xs" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -1063,6 +1101,7 @@ function filtrarPorTexto() {
     const q = input ? input.value.toLowerCase().trim().substring(0, 100) : '';
     if (!q) {
         renderizarNoticias(state.todasNoticias);
+        anunciarParaLeitor(`Exibindo todas as ${state.todasNoticias.length} notícias.`);
         return;
     }
     const filtradas = state.todasNoticias.filter(n =>
@@ -1071,15 +1110,31 @@ function filtrarPorTexto() {
         (n.fonte && n.fonte.toLowerCase().includes(q))
     );
     renderizarNoticias(filtradas);
+    anunciarParaLeitor(`${filtradas.length} notícias encontradas para a busca.`);
 }
 
 /* ==========================================================================
    Modais: Configurações & Acessibilidade
    ========================================================================== */
-function toggleSettingsModal() {
+function toggleSettingsModal(trigger = null) {
     const modal = document.getElementById('modal-settings');
-    if (modal) {
-        modal.classList.toggle('hidden');
+    if (!modal) return;
+    const isFechando = !modal.classList.contains('hidden');
+
+    if (isFechando) {
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+        if (elementoDisparadorModal && typeof elementoDisparadorModal.focus === 'function') {
+            elementoDisparadorModal.focus();
+        }
+        anunciarParaLeitor('Configurações fechadas.');
+    } else {
+        elementoDisparadorModal = trigger || document.activeElement;
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        const select = document.getElementById('select-provider');
+        if (select) setTimeout(() => select.focus(), 100);
+        anunciarParaLeitor('Janela de configurações aberta. Pressione Escape para fechar.');
     }
 }
 
@@ -1096,9 +1151,9 @@ function atualizarOpcoesProvider() {
             grpApiKey.classList.remove('hidden');
             if (dica) {
                 if (prov === 'gnews') {
-                    dica.innerHTML = 'Obtenha sua chave gratuita em <a href="https://gnews.io" target="_blank" rel="noopener noreferrer" class="text-redbrand-500 hover:underline">gnews.io</a> (100 req/dia).';
+                    dica.innerHTML = 'Obtenha sua chave gratuita em <a href="https://gnews.io" target="_blank" rel="noopener noreferrer" class="text-redbrand-500 hover:underline focus:outline-none focus-visible:underline">gnews.io</a> (100 req/dia).';
                 } else if (prov === 'newsdata') {
-                    dica.innerHTML = 'Obtenha sua chave gratuita em <a href="https://newsdata.io" target="_blank" rel="noopener noreferrer" class="text-redbrand-500 hover:underline">newsdata.io</a> (200 créditos/dia).';
+                    dica.innerHTML = 'Obtenha sua chave gratuita em <a href="https://newsdata.io" target="_blank" rel="noopener noreferrer" class="text-redbrand-500 hover:underline focus:outline-none focus-visible:underline">newsdata.io</a> (200 créditos/dia).';
                 }
             }
         }
@@ -1122,11 +1177,42 @@ function salvarConfiguracoes() {
 
 function configurarEventosTeclado() {
     document.addEventListener('keydown', (e) => {
+        const modalMeteo = document.getElementById('modal-meteorologia');
+        const modalSettings = document.getElementById('modal-settings');
+        const modalMeteoAberto = modalMeteo && !modalMeteo.classList.contains('hidden');
+        const modalSettingsAberto = modalSettings && !modalSettings.classList.contains('hidden');
+        const modalAtivo = modalMeteoAberto ? modalMeteo : (modalSettingsAberto ? modalSettings : null);
+
         if (e.key === 'Escape') {
-            fecharModalCidade();
-            const modalSettings = document.getElementById('modal-settings');
-            if (modalSettings && !modalSettings.classList.contains('hidden')) {
-                modalSettings.classList.add('hidden');
+            if (modalMeteoAberto) {
+                fecharModalMeteorologia();
+            }
+            if (modalSettingsAberto) {
+                toggleSettingsModal();
+            }
+            return;
+        }
+
+        // Focus Trap dentro do modal ativo (Critério WCAG 2.1.2 - No Keyboard Trap)
+        if (e.key === 'Tab' && modalAtivo) {
+            const focusables = modalAtivo.querySelectorAll(
+                'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            );
+            if (!focusables || focusables.length === 0) return;
+
+            const firstElement = focusables[0];
+            const lastElement = focusables[focusables.length - 1];
+
+            if (e.shiftKey) {
+                if (document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                }
+            } else {
+                if (document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
             }
         }
     });
@@ -1138,7 +1224,11 @@ function configurarFechamentoBackdrop() {
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
-                    modal.classList.add('hidden');
+                    if (modalId === 'modal-meteorologia') {
+                        fecharModalMeteorologia();
+                    } else {
+                        toggleSettingsModal();
+                    }
                 }
             });
         }
@@ -1168,12 +1258,16 @@ function mostrarToast(mensagem) {
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'toast-feedback';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.setAttribute('aria-atomic', 'true');
         toast.className = 'fixed bottom-5 right-5 z-50 bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 border border-slate-700 dark:border-slate-200 transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none';
         document.body.appendChild(toast);
     }
     const safeMsg = escapeHTML(mensagem);
-    toast.innerHTML = `<i class="fa-solid fa-circle-check text-redbrand-500"></i> <span>${safeMsg}</span>`;
+    toast.innerHTML = `<i class="fa-solid fa-circle-check text-redbrand-500" aria-hidden="true"></i> <span>${safeMsg}</span>`;
     toast.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+    anunciarParaLeitor(mensagem);
     setTimeout(() => {
         toast.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
     }, 3000);

@@ -48,6 +48,14 @@
 
 <body class="bg-slate-50 dark:bg-[#0b0f19] text-slate-800 dark:text-slate-100 min-h-screen flex flex-col font-sans transition-colors duration-300">
 
+    <!-- Skip Link para Navegação Rápida por Teclado (Critério WCAG 2.4.1) -->
+    <a href="#conteudo-principal" class="skip-link">
+        Pular para o conteúdo principal
+    </a>
+
+    <!-- Região Live para Anúncios aos Leitores de Tela (Critério WCAG 4.1.3) -->
+    <div id="aria-anunciador" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
     <!-- Barra de Informações do Topo: Previsão do Tempo & Câmbio em Tempo Real -->
     <aside aria-label="Informações de clima e cotações em tempo real"
         class="bg-white/95 dark:bg-slate-950/90 border-b border-slate-200 dark:border-slate-800 text-xs py-2 px-4 sm:px-6 lg:px-8 sticky top-0 z-50 backdrop-blur transition-colors duration-300">
@@ -55,44 +63,45 @@
 
             <!-- Widget de Clima / Previsão do Tempo (Expandido e Informativo) -->
             <div id="widget-clima" class="flex items-center flex-wrap gap-2.5 sm:gap-3">
-                <div class="flex items-center gap-1.5 cursor-pointer hover:opacity-85 transition" onclick="abrirModalMeteorologia()" title="Clique para ver previsão completa">
+                <button type="button" class="flex items-center gap-1.5 cursor-pointer hover:opacity-85 transition rounded-lg text-left bg-transparent border-0 p-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    onclick="abrirModalMeteorologia(this)" title="Clique para ver previsão completa" aria-label="Previsão do tempo: abrir central meteorológica e previsão detalhada">
                     <span id="clima-icone" class="text-lg text-sky-500 dark:text-sky-400 flex items-center" aria-hidden="true">
                         <i class="fa-solid fa-cloud-sun"></i>
                     </span>
                     <span id="clima-atual-temp" class="text-sm font-black text-slate-900 dark:text-white tracking-tight">--°C</span>
-                </div>
+                </button>
 
                 <div class="flex items-center gap-1.5 font-medium">
-                    <button type="button" id="clima-cidade" class="text-slate-700 dark:text-slate-200 hover:text-redbrand-600 dark:hover:text-white cursor-pointer transition font-semibold"
-                        onclick="abrirModalMeteorologia()" aria-label="Cidade atual: São Paulo. Clique para abrir central meteorológica">
+                    <button type="button" id="clima-cidade" class="text-slate-700 dark:text-slate-200 hover:text-redbrand-600 dark:hover:text-white cursor-pointer transition font-semibold p-1 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        onclick="abrirModalMeteorologia(this)" aria-label="Cidade atual: São Paulo. Clique para abrir central meteorológica">
                         São Paulo
                     </button>
-                    <button type="button" onclick="abrirModalMeteorologia()"
-                        class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-[11px] p-1 rounded transition"
-                        title="Pesquisar cidade ou ver detalhes" aria-label="Pesquisar cidade">
-                        <i class="fa-solid fa-magnifying-glass"></i>
+                    <button type="button" onclick="abrirModalMeteorologia(this)"
+                        class="text-slate-400 hover:text-slate-700 dark:hover:text-white text-[11px] p-1.5 rounded-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        title="Pesquisar cidade ou ver detalhes" aria-label="Pesquisar cidade na central meteorológica">
+                        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
                     </button>
                 </div>
 
-                <div class="flex items-center gap-1.5 font-bold tracking-tight text-xs">
+                <div class="flex items-center gap-1.5 font-bold tracking-tight text-xs" aria-label="Temperaturas do dia">
                     <span id="clima-max" class="text-red-500 font-bold" title="Temperatura Máxima">--°</span>
-                    <span class="text-slate-300 dark:text-slate-700 font-normal">/</span>
+                    <span class="text-slate-300 dark:text-slate-700 font-normal" aria-hidden="true">/</span>
                     <span id="clima-min" class="text-sky-500 dark:text-sky-400 font-bold" title="Temperatura Mínima">--°</span>
                 </div>
 
-                <span class="hidden sm:inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[11px] font-medium" title="Umidade Relativa do Ar">
+                <span class="hidden sm:inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[11px] font-medium" title="Umidade Relativa do Ar" aria-label="Umidade do ar">
                     <i class="fa-solid fa-droplet text-sky-400 text-[10px]" aria-hidden="true"></i>
                     <span id="clima-umidade">--%</span>
                 </span>
 
-                <span class="hidden lg:inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[11px] font-medium" title="Probabilidade de Chuva">
+                <span class="hidden lg:inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 text-[11px] font-medium" title="Probabilidade de Chuva" aria-label="Probabilidade de chuva">
                     <i class="fa-solid fa-cloud-rain text-indigo-400 text-[10px]" aria-hidden="true"></i>
                     <span id="clima-chuva">--%</span>
                 </span>
 
-                <button type="button" onclick="abrirModalMeteorologia()"
-                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300 font-semibold text-[11px] border border-sky-500/30 transition active:scale-95"
-                    title="Ver previsão completa para 7 dias e hora a hora">
+                <button type="button" onclick="abrirModalMeteorologia(this)"
+                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:bg-sky-500/20 dark:text-sky-300 font-semibold text-[11px] border border-sky-500/30 transition active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    title="Ver previsão completa para 7 dias e hora a hora" aria-label="Abrir previsão completa de 7 dias e hora a hora">
                     <i class="fa-solid fa-chart-line text-[10px]" aria-hidden="true"></i>
                     <span>Previsão Completa</span>
                     <i class="fa-solid fa-chevron-down text-[9px]" aria-hidden="true"></i>
@@ -100,25 +109,27 @@
             </div>
 
             <!-- Widget de Câmbio em Tempo Real -->
-            <div id="widget-cambio" class="flex items-center gap-4 text-xs font-semibold" aria-label="Cotações de moedas">
+            <div id="widget-cambio" class="flex items-center gap-4 text-xs font-semibold" aria-label="Cotações de moedas em tempo real">
                 <!-- Dólar -->
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5" title="Cotação do Dólar Comercial">
                     <span class="text-slate-500 dark:text-slate-400">Dólar</span>
                     <span id="cambio-dolar-arrow" class="text-emerald-500 dark:text-emerald-400 text-[11px]" aria-hidden="true">
                         <i class="fa-solid fa-arrow-up"></i>
                     </span>
                     <span id="cambio-dolar-val" class="text-emerald-600 dark:text-emerald-400 font-mono">5,125</span>
+                    <span class="sr-only" id="cambio-dolar-desc">em alta</span>
                 </div>
                 <!-- Euro -->
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5" title="Cotação do Euro">
                     <span class="text-slate-500 dark:text-slate-400">Euro</span>
                     <span id="cambio-euro-arrow" class="text-emerald-500 dark:text-emerald-400 text-[11px]" aria-hidden="true">
                         <i class="fa-solid fa-arrow-up"></i>
                     </span>
                     <span id="cambio-euro-val" class="text-emerald-600 dark:text-emerald-400 font-mono">5,943</span>
+                    <span class="sr-only" id="cambio-euro-desc">em alta</span>
                 </div>
                 <!-- Bitcoin -->
-                <div class="hidden sm:flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                <div class="hidden sm:flex items-center gap-1.5 text-slate-500 dark:text-slate-400" title="Cotação do Bitcoin em Reais">
                     <span>BTC</span>
                     <span id="cambio-btc-val" class="text-slate-700 dark:text-slate-300 font-mono text-[11px]">R$ --</span>
                 </div>
@@ -137,30 +148,32 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
 
             <!-- Logo e Título H1 Semântico -->
-            <div class="flex items-center space-x-3 cursor-pointer select-none"
-                onclick="selecionarCategoria('tecnologia')" role="button" tabindex="0"
-                aria-label="Ir para a página inicial da InfoNews">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"
-                    class="w-10 h-10 shadow-lg shadow-redbrand-600/30 rounded-xl transition-transform hover:scale-105"
-                    aria-hidden="true">
-                    <rect width="48" height="48" rx="12" fill="#DC2626" />
-                    <path d="M12 36 L12 12 L18.5 12 L29.5 26 L29.5 12 L36 12 L36 36 L29.5 36 L18.5 22 L18.5 36 Z"
-                        fill="#FFFFFF" />
-                    <circle cx="36" cy="11" r="4.5" fill="#EF4444" stroke="#DC2626" stroke-width="1.5" />
-                </svg>
-                <div>
-                    <div class="flex items-center gap-2">
-                        <h1 class="font-black text-xl tracking-tight text-slate-900 dark:text-white leading-none">
-                            INFO<span class="text-redbrand-600 dark:text-redbrand-500">NEWS</span>
-                        </h1>
-                        <span
-                            class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-redbrand-500/10 dark:bg-redbrand-600/20 text-redbrand-600 dark:text-redbrand-400 border border-redbrand-500/30">
-                            <span class="w-1.5 h-1.5 rounded-full bg-redbrand-500 live-indicator" aria-hidden="true"></span> AO VIVO
-                        </span>
+            <h1>
+                <button type="button" class="flex items-center space-x-3 cursor-pointer select-none text-left bg-transparent border-0 p-1.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-redbrand-500"
+                    onclick="selecionarCategoria('tecnologia')"
+                    aria-label="InfoNews - Página inicial e notícias de tecnologia">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"
+                        class="w-10 h-10 shadow-lg shadow-redbrand-600/30 rounded-xl transition-transform hover:scale-105"
+                        aria-hidden="true">
+                        <rect width="48" height="48" rx="12" fill="#DC2626" />
+                        <path d="M12 36 L12 12 L18.5 12 L29.5 26 L29.5 12 L36 12 L36 36 L29.5 36 L18.5 22 L18.5 36 Z"
+                            fill="#FFFFFF" />
+                        <circle cx="36" cy="11" r="4.5" fill="#EF4444" stroke="#DC2626" stroke-width="1.5" />
+                    </svg>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-black text-xl tracking-tight text-slate-900 dark:text-white leading-none">
+                                INFO<span class="text-redbrand-600 dark:text-redbrand-500">NEWS</span>
+                            </span>
+                            <span
+                                class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-redbrand-500/10 dark:bg-redbrand-600/20 text-redbrand-600 dark:text-redbrand-400 border border-redbrand-500/30">
+                                <span class="w-1.5 h-1.5 rounded-full bg-redbrand-500 live-indicator" aria-hidden="true"></span> AO VIVO
+                            </span>
+                        </div>
+                        <span class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block font-normal">Brasil • Mundo • Portais Tech</span>
                     </div>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">Brasil • Mundo • Portais Tech</p>
-                </div>
-            </div>
+                </button>
+            </h1>
 
             <!-- Ações do Topo: Configurações, Tema e Atualizar -->
             <div class="flex items-center space-x-2 sm:space-x-3">
@@ -459,25 +472,26 @@
             <div class="space-y-3 mb-6">
                 <form onsubmit="salvarCidadeMeteo(event)" class="flex gap-2">
                     <div class="relative flex-grow">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <label for="input-busca-cidade-meteo" class="sr-only">Buscar cidade para previsão meteorológica</label>
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs" aria-hidden="true"></i>
                         <input type="text" id="input-busca-cidade-meteo"
                             placeholder="Buscar cidade (Ex: Uberlândia, São Paulo, Lisboa, Curitiba...)"
                             class="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:ring-2 focus:ring-sky-500 outline-none transition">
                     </div>
-                    <button type="submit" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95 whitespace-nowrap">
+                    <button type="submit" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded-xl text-xs font-bold shadow-sm transition active:scale-95 whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
                         Buscar
                     </button>
                 </form>
 
-                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1" role="group" aria-label="Cidades rápidas para consulta">
                     <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap mr-1">Rápido:</span>
-                    <button type="button" onclick="selecionarCidadeRapida('São Paulo', -23.5475, -46.6361)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">São Paulo</button>
-                    <button type="button" onclick="selecionarCidadeRapida('Uberlândia', -18.9186, -48.2772)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Uberlândia</button>
-                    <button type="button" onclick="selecionarCidadeRapida('Rio de Janeiro', -22.9068, -43.1729)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Rio de Janeiro</button>
-                    <button type="button" onclick="selecionarCidadeRapida('Belo Horizonte', -19.9167, -43.9345)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Belo Horizonte</button>
-                    <button type="button" onclick="selecionarCidadeRapida('Brasília', -15.7797, -47.9297)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Brasília</button>
-                    <button type="button" onclick="selecionarCidadeRapida('Curitiba', -25.4284, -49.2733)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Curitiba</button>
-                    <button type="button" onclick="selecionarCidadeRapida('Porto Alegre', -30.0346, -51.2177)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap">Porto Alegre</button>
+                    <button type="button" onclick="selecionarCidadeRapida('São Paulo', -23.5475, -46.6361)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">São Paulo</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Uberlândia', -18.9186, -48.2772)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Uberlândia</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Rio de Janeiro', -22.9068, -43.1729)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Rio de Janeiro</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Belo Horizonte', -19.9167, -43.9345)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Belo Horizonte</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Brasília', -15.7797, -47.9297)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Brasília</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Curitiba', -25.4284, -49.2733)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Curitiba</button>
+                    <button type="button" onclick="selecionarCidadeRapida('Porto Alegre', -30.0346, -51.2177)" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Porto Alegre</button>
                 </div>
             </div>
 
@@ -488,7 +502,7 @@
                     <div>
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span> TEMPO AGORA
+                                <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse" aria-hidden="true"></span> TEMPO AGORA
                             </span>
                             <span id="meteo-atual-horario" class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">--:--</span>
                         </div>
@@ -506,7 +520,7 @@
                                 Sensação térmica: <strong id="meteo-atual-sensacao" class="text-slate-700 dark:text-slate-200">--°C</strong>
                             </p>
                         </div>
-                        <div id="meteo-atual-icone-grande" class="text-5xl sm:text-6xl text-sky-500 dark:text-sky-400 pr-2">
+                        <div id="meteo-atual-icone-grande" class="text-5xl sm:text-6xl text-sky-500 dark:text-sky-400 pr-2" aria-hidden="true">
                             <i class="fa-solid fa-cloud-sun"></i>
                         </div>
                     </div>
@@ -525,7 +539,7 @@
                     <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
                         <div class="flex items-center justify-between text-slate-400">
                             <span class="text-[11px] font-semibold uppercase tracking-wider">Sensação</span>
-                            <i class="fa-solid fa-temperature-half text-amber-500"></i>
+                            <i class="fa-solid fa-temperature-half text-amber-500" aria-hidden="true"></i>
                         </div>
                         <div class="mt-2">
                             <span id="meteo-card-sensacao" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">--°C</span>
@@ -536,7 +550,7 @@
                     <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
                         <div class="flex items-center justify-between text-slate-400">
                             <span class="text-[11px] font-semibold uppercase tracking-wider">Umidade</span>
-                            <i class="fa-solid fa-droplet text-sky-400"></i>
+                            <i class="fa-solid fa-droplet text-sky-400" aria-hidden="true"></i>
                         </div>
                         <div class="mt-2">
                             <span id="meteo-card-umidade" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">--%</span>
@@ -547,7 +561,7 @@
                     <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
                         <div class="flex items-center justify-between text-slate-400">
                             <span class="text-[11px] font-semibold uppercase tracking-wider">Chuva Hoje</span>
-                            <i class="fa-solid fa-cloud-showers-heavy text-indigo-400"></i>
+                            <i class="fa-solid fa-cloud-showers-heavy text-indigo-400" aria-hidden="true"></i>
                         </div>
                         <div class="mt-2">
                             <span id="meteo-card-chuva" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">--%</span>
@@ -558,7 +572,7 @@
                     <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
                         <div class="flex items-center justify-between text-slate-400">
                             <span class="text-[11px] font-semibold uppercase tracking-wider">Vento</span>
-                            <i class="fa-solid fa-wind text-teal-400"></i>
+                            <i class="fa-solid fa-wind text-teal-400" aria-hidden="true"></i>
                         </div>
                         <div class="mt-2">
                             <span id="meteo-card-vento" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">-- km/h</span>
@@ -569,7 +583,7 @@
                     <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
                         <div class="flex items-center justify-between text-slate-400">
                             <span class="text-[11px] font-semibold uppercase tracking-wider">Índice UV</span>
-                            <i class="fa-solid fa-sun text-yellow-500"></i>
+                            <i class="fa-solid fa-sun text-yellow-500" aria-hidden="true"></i>
                         </div>
                         <div class="mt-2">
                             <span id="meteo-card-uv" class="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white">--</span>
@@ -580,7 +594,7 @@
                     <div class="bg-slate-50 dark:bg-slate-800/80 rounded-xl p-3.5 border border-slate-200 dark:border-slate-750 flex flex-col justify-between">
                         <div class="flex items-center justify-between text-slate-400">
                             <span class="text-[11px] font-semibold uppercase tracking-wider">Sol</span>
-                            <i class="fa-solid fa-mountain-sun text-orange-400"></i>
+                            <i class="fa-solid fa-mountain-sun text-orange-400" aria-hidden="true"></i>
                         </div>
                         <div class="mt-2 text-xs">
                             <div class="flex items-center justify-between text-slate-700 dark:text-slate-200 font-bold">
@@ -597,19 +611,19 @@
             <div class="mb-6">
                 <div class="flex items-center justify-between mb-3">
                     <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                        <i class="fa-solid fa-clock text-sky-500"></i> Previsão Hora a Hora (Próximas 24h)
+                        <i class="fa-solid fa-clock text-sky-500" aria-hidden="true"></i> Previsão Hora a Hora (Próximas 24h)
                     </h4>
                     <span class="text-[11px] text-slate-400">Role para o lado ➔</span>
                 </div>
-                <div id="meteo-hora-a-hora" class="flex gap-2.5 overflow-x-auto pb-2 no-scrollbar"></div>
+                <div id="meteo-hora-a-hora" class="flex gap-2.5 overflow-x-auto pb-2 no-scrollbar focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded-xl p-1" tabindex="0" role="region" aria-label="Previsão horária para as próximas 24 horas. Use as setas para rolar"></div>
             </div>
 
             <!-- 7 Dias -->
             <div>
                 <h4 class="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-3">
-                    <i class="fa-solid fa-calendar-days text-sky-500"></i> Previsão Estendida para os Próximos 7 Dias
+                    <i class="fa-solid fa-calendar-days text-sky-500" aria-hidden="true"></i> Previsão Estendida para os Próximos 7 Dias
                 </h4>
-                <div id="meteo-previsao-7dias" class="space-y-2"></div>
+                <div id="meteo-previsao-7dias" class="space-y-2" role="region" aria-label="Previsão meteorológica para os próximos 7 dias"></div>
             </div>
         </div>
     </div>
